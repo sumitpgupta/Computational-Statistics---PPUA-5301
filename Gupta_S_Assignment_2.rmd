@@ -1,0 +1,141 @@
+---
+title: "HW_02_Gupta_S"
+author: "Sumit Gupta"
+date: "September 25, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Question 1
+a.
+
+```{r fig.align='center', fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+
+mean_x <- function(x) 
+ifelse(is.numeric(x), sum(x,na.rm=T)/length(x[!is.na(x)]),NaN)
+
+mean_x(1:5)
+```
+
+b.
+```{r}
+fn_input <- function(x)
+  ifelse(sum(x[1:2]) > sum(x[3:4]),return(x),0 )
+
+fn_input(1:6)
+fn_input(6:1)
+
+```
+
+
+c.
+
+```{r}
+fn_fib<-function(n){
+ x=c(1,1)
+ 
+ for(i in 3:n){
+   x[i]=x[i-1]+x[i-2]
+   }
+ return(x)
+}
+
+fn_fib(10)
+
+
+```
+
+d.
+
+```{r}
+m1 <- matrix(1:16,4,4)
+apply(m1,1,mean_x)
+apply(m1,2,mean_x)
+```
+
+# Question 2.
+a.
+```{r}
+airquality
+library(dplyr)
+airquality<-na.omit(airquality)
+airquality %>%
+  group_by(Month) %>%
+  summarise(max_wind=max(Wind), max_ozone=max(Ozone))
+
+```
+
+b.
+```{r}
+Authors <- data.frame(surname = c("Tukey", "Venables", "Tierney", "Ripley", "McNeil"),
+nationality = c("US", "Australia", "US", "UK", "Australia"))
+
+Books <- data.frame(name = c("Tukey", "Venables", "Tierney", "Ripley", "Ripley", "McNeil","R Core"),
+title = c("Exploratory Data Analysis", "Modern Applied Statistics ...","LISP-STAT", "Spatial Statistics", "Stochastic Simulation",
+"Interactive Data Analysis", "An Introduction to R"))
+
+merge(Authors, Books, by.x = "surname",by.y = "name", all = TRUE)
+```
+c.
+
+```{r}
+text_str <- "To be, or not to be -- that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles,
+And by opposing end them. To die -- to sleep --
+No more..."
+text_str <- gsub("to",2, text_str, ignore.case = T)
+text_str
+```
+
+# Question 3.
+a.
+```{r}
+datasets::AirPassengers
+hist(AirPassengers, main = "Histogram distribution of Air Passengers")
+```
+
+b.
+
+```{r}
+library(datasets)
+datasets::mtcars
+plot(mtcars$disp, mtcars$drat, main="Scatterplot Example", 
+  	xlab="Displacement", ylab="Miles Per Gallon ", pch=19)
+
+```
+
+c.
+```{r}
+library(ggplot2)
+
+random_nos <- rnorm(1000)
+ data<- data.frame(random_nos)
+
+ggplot(data, aes(x=data)) + geom_histogram()+ggtitle("Normal Distribution")
+```
+
+d.
+```{r}
+library(lattice)
+diamonds
+str(diamonds)
+ggplot(diamonds, aes(factor(cut),price, fill=cut))+
+  geom_boxplot()+
+  ggtitle("Diamond Price based on cut") +
+  xlab("Cut Type")+ ylab("Diamond price in USD")+     coord_cartesian(ylim = c(0,8000))
+
+```
+
+e. 
+```{r}
+datasets::iris 
+ggplot(data = iris, aes(x=Sepal.Length, y=Sepal.Width))+
+  geom_point(aes(color=Species, shape=Species ))+
+  xlab("Sepal Length")+ylab("Sepal Width")+
+  ggtitle("Sepal Length Vs Sepal Width ")
+```
+
+

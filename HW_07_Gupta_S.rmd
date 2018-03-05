@@ -1,0 +1,172 @@
+---
+title: "HW-07_Gupta_S"
+author: "Sumit Gupta"
+date: "October 22, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+You collect the following data on four people sampled at random:
+
+Age IQ
+23 100
+18 105
+10 95
+45 120
+
+Is there an effect of Age on IQ? Please perform all calculations by hand using the equations in the lessons unless otherwise specified.
+1. Plot these four points using R.
+
+
+```{r}
+set.seed(1)
+library(ggplot2)
+Age <- c(23,18, 10, 45)
+IQ<- c(100,105,95,120)
+ggplot(data.frame(x=Age, y=IQ), aes(x=Age, y=IQ)) + geom_point()
+```
+
+2. Calculate the covariance between age and IQ.
+
+
+$\textrm{Cov}(x,y) = \frac{1}{(n-1) } \sum_{i} (x_{i} - \bar{x})(y_{i} - \bar{y})$
+
+
+$\textrm{Cov}(Age,IQ) = \frac{1}{(4-1) } [(23-24)(100-105)+(18-24)(105-105)+(10-24)(95-105)+(45-24)(120-105)]=153.3333$
+
+Verifying using R:
+```{r}
+cov(Age, IQ)
+```
+
+3. Calculate their correlation. What does the number you get indicate?
+
+$r = \frac{\textrm{Cov}(x,y)}{ s_{x} s_{y}}$
+
+$\sigma_\textrm{age}=14.988$
+$\sigma_\textrm{IQ}=10.801$
+
+$r = 153.333/(14.988*10.801)=0.9470$ 
+
+Verifying using R:
+```{r}
+cor(Age,IQ)
+```
+
+4. Calculate the regression coefficients $\beta_0$ and $\beta_1$ and write out the equation of the best-fit line relating age and IQ.
+
+$y = \beta_{0} + \beta_{1}x$
+
+$\beta_{1} = \frac{ \textrm{Cov}(x,y)}{\textrm{Var}(x)}   = \frac{ \sum_{i} (x_{i} - \bar{x})(y_{i} - \bar{y})}{\sum_{i} (x_{i} - \bar{x})^{2}}$
+
+$Var(x)=\frac{1}{(n-1) }{\sum(x_{i} - \bar{x})^{2}}=224.6667$
+
+```{r}
+var(Age)
+```
+
+
+Thus, $\beta_{1}=(153.3333/224.6667)=0.6824$
+
+$\beta_{0} =  \bar{y} - \beta_{1} \bar{x}=(105-16.3776)=88.6224$
+
+Best fit line equation can be given as:
+
+$y = \beta_{0} + \beta_{1}x$
+That is, $y = 18.6224 + 0.6824x$
+
+5. Calculate the predicted ^yi for each xi.
+
+$y = 88.6224 + 0.6824(23)=104.3176$
+$y = 88.6224 + 0.6824(18)=100.9056$
+$y = 88.6224 + 0.6824(10)=95.4464$
+$y = 88.6224 + 0.6824(45)=119.3704$
+
+
+6. Calculate R^2 from the TSS/SSE equation. How does it relate to the correlation? What does the number you get indicate?
+
+$TSS = \sum_{i} (y_{i} - \bar{y})^{2}=(100-105)^2+(105-105)^2+(95-105)^2+(120-105)^2=350$
+
+So, now we compute SSE using the predicted y values.
+
+$SSE = \sum_{i} (y_{i} - \hat{y}_{i})^{2}=(100-104.3175)^2+(105-100.905)^2+(95-95.4451)^2+(120-119.3323)^2=36.053$
+
+Now, 
+$R^{2} = \frac{TSS - SSE}{TSS}=(350-36.053)/350=0.897$
+
+R-squared is the square of the correlation. It ranges from values (0,1) unlike correlation which ranges between (-1,+1) .
+The R-squared value of 0.897 indicates that 89.7% of the variation is captured by the model which is good.
+
+7. Calculate the standard error of $\beta_1$, and use that to test (using the t test) whether $\beta_1$ 1 is significant.
+
+
+$se_{\beta_1} = se_{\hat{y}} \frac{1}{\sqrt{\sum (x_i - \bar{x})^2}}=0.1635$
+Also, we have $\beta_1=0.6825$
+
+So, our t-statistic = (0.6824-0)/0.1635 = 4.1737
+Degrees of freedom = n-k-1 = 4-1-1 = 2
+```{r}
+qt(0.975,2)
+```
+
+Since, t-statistic (4.17)< 4.30 we conclude that the effect of Age on IQ ($\beta_1$) is not statistically significant.
+
+8. Calculate the p-value for $\beta_1$ and interpret it.
+
+```{r}
+  2*pt(4.173,2, lower.tail = F)
+```
+
+9. Calculate the 95% CI for $\beta_1$ and interpret it.
+
+$CI_{0.95}(\beta_1) = 0.6824\pm 4.30265*0.1635 = 0.6824\pm0.7034=[-0.021,1.3858]$
+
+10.Confirm your results by regressing IQ on Age using R.
+```{r}
+dat <- data.frame(Age,IQ)
+biv_model <- lm(IQ~Age,data=dat)
+summary(biv_model)
+predict(biv_model)
+```
+
+Thus, we confirm that the R-squared, beta values are matching with our computations
+
+
+11. Plot your points again using R, including the linear fit line with its standard error.
+
+```{r}
+# Plotting regressions lines without the standard error
+ggplot(dat, aes(x=Age, y=IQ)) + geom_point() + geom_smooth(method=lm, se=FALSE)
+```
+
+```{r}
+# Plotting regression lines with standard error
+ggplot(dat, aes(x=Age, y=IQ)) + geom_point() + geom_smooth(method=lm)
+```
+
+The shaded area is the 95% CI in the line. 
+The grey area combines the uncertainty in the intercept and slope. 
+
+12. What are you final conclusions about the relationship between age and IQ?
+
+ a. The effect of Age on IQ is not statistically significant as witnessed earlier. 
+ b. Also, from the plot, we fail to conclude that IQ increases/decreases with Age.
+ c. The adjusted R squared value of 0.8455 suggest that the model is fairly stable and hence we     can confidently support the claims made earlier.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

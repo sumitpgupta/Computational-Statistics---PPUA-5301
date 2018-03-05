@@ -1,0 +1,167 @@
+---
+title: "HW_11_Gupta_S"
+author: "Sumit Gupta"
+date: "November 29, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Loading the dataset from the psych package
+
+```{r}
+library(psych)
+data(bfi)
+bfi <- na.omit(bfi) # removing missing values
+bfi_final<- scale(bfi) # scaling 
+bfi_final <- data.frame(bfi_final)
+```
+
+
+1. Examine the factor eigenvalues or variances (or the sdev or standard deviations as reported by prcomp or princomp, which you then need to square to get the variances). Plot these in a scree plot and use the "elbow" test to guess how many factors one should retain. What proportion of the total variance does your subset of variables explain?
+
+
+
+
+Estimating the prinicpal components:
+```{r}
+
+# prcomp method using SVD
+pcaA<- prcomp(bfi_final)
+pcaA1 <- pcaA$rotation[,1]
+
+pcaA_stdev <- pcaA$sdev # Extracting std deviations
+pcaA_stdev_squared<- pcaA_stdev^2 # Squaring to get variances
+
+```
+
+```{r}
+plot(pcaA_stdev_squared)
+```
+
+Around 7 components are capturing close to 90% of the total variance. So 7 factors can be retained.
+
+
+Manual Approach:
+
+Using using cov() to estimate the covariance matrix and eigen() to get the eigenvectors:
+```{r}
+# Direct eigen of cov
+covm <- cov(bfi_final)
+eigenm <- eigen(covm)
+eigen1 <- eigenm$vectors[,1]
+
+# Scree plot
+plot(cumsum(eigenm$values)/sum(eigenm$values),ylim=c(0,1))
+```
+Thus, there is an elbow at around 7 and it is capturing about 55% of total variance.
+Approach3: Using princomp():
+
+```{r}
+# Princomp method using eigen of cov
+pcaB <- princomp(bfi_final)
+pcaB1 <- pcaB$loadings[,1]
+pcaB_stdev <- pcaB$sdev # Extracting std deviations
+pcaB_stdev_squared<- pcaB_stdev^2 # Squaring to get variances
+
+plot(pcaB_stdev_squared)
+```
+
+Similarly here, 7 factors can be retained as seen from the elbow.
+
+2. Examine the loadings of the factors on the variables (sometimes called the "rotation" in the function output) - ie, the projection of the factors on the variables - focusing on just the first one or two factors. Sort the variables by their loadings, and try to interpret what the first one or two factors "mean." This may require looking more carefully into the dataset to understand exactly what each of the variables were measuring. You can find more about the data in the psych package using ?psych or visiting http://personality-project.org/ .
+
+
+```{r}
+library(GPArotation)
+fact <- fa(bfi_final, nfactors = 2)
+fact1 <- fact$loadings[,1] # Extracting the loadings
+
+# ordering the loadings in descending order
+fact1[order(fact1)] # First factor
+
+```
+
+After going through the data dictionary to understand the meanings of the variables,
+we can say that there are two kinds of variables.
+The lowest scoring variables (denoted by negative sign) represent a person who is not a positive person, is introvert and doesnot do things in the right manner; whereas the higher scoring variables represent a positive person who is extrovert, educated, confident, cares about others, does things rightly and takes charge of things.
+
+```{r}
+# 2nd factor
+fact2 <- fact$loadings[,2]
+fact2[order(fact2)]
+```
+
+The 2nd factor looks shows a picture of 2 personalities: Consolidated, patient and energetic person Vs Impatient and Irritable person.
+
+3. First use k-means and examine the centers of the first two or three clusters. How are they similar to and different from the factor loadings of the first couple factors?
+
+
+```{r}
+kout <- kmeans(bfi_final,centers=2,nstart=25)
+```
+
+```{r}
+centroids <- kout$centers
+topvars_centroid1 <- centroids[1,order(centroids[1,])]
+topvars_centroid2 <- centroids[2,order(centroids[2,])]
+tail(topvars_centroid1)
+```
+The first cluster suggests a negative personality  who gets angry, depressed and wastes time. It captures variables which are negative on 1st PCA.
+```{r}
+tail(topvars_centroid2)
+```
+The second cluster is representative of a positive perosnality who is friendly, helps,  comforts and captivates others. It captures variables that are positive on 1st PCA.
+
+Comparison with factor loadings of first two clusters:
+
+Factors are dimensional and oppositional in nature i.e. each factor has two directions and in our case we see clear oppositions at both ends of the factors. 
+In our case the first factor distincts between two personalities: One which is not positive, introvert and doesnot do things in right manner Vs a positive person who is confident, takes charge of things and cares about others.
+
+The second factor distincts between: A patient and energetic personality Vs an Pmatient and irritable personality
+
+On the other hand Clusters are less oppositional ie. one directional and we focus more on variables that score highly ; the first cluster depicts a negative perosnality who gets angry, depressed and wastes time whereas the second cluster depicts friendly perosnality, who is helpful and comforting to others.
+
+
+4. Next use hierarchical clustering. Print the dendrogram, and use that to guide your choice of the number of clusters. Use cutree to generate a list of which clusters each observation belongs to. Aggregate the data by cluster and then examine those centers (the aggregate means) as you did in (3). Can you interpret all of them meaningfully using the methods from (3) to look at the centers?
+
+```{r}
+hout2 <- hclust(dist(bfi_final),method="complete")
+plot(hout2,labels=FALSE)
+abline(a=16.5,b=0,col="red")
+abline(a=13.8,b=0,col="blue")
+```
+We make the cuts with the red and blue lines to divide the tree into 2 and 5 clusters respectively. 
+
+
+```{r}
+cut <-as.vector(cutree(hout2,k=2 ))
+clust_means <- aggregate(bfi_final, by=list(cut), FUN=mean)
+tail(unlist(sort(clust_means[1, names(clust_means)!="Group.1"])))
+```
+```{r}
+tail(topvars_centroid2)
+```
+```{r}
+tail(unlist(sort(clust_means[2, names(clust_means)!="Group.1"])))
+```
+```{r}
+tail(topvars_centroid1)
+```
+Thus, we observe that the output matches the results from 3. Similar high scoring variables can be observed using kmeans and cut tree combined output.
+
+
+
+5. From the factor and cluster analysis, what can you say more generally about what you have learned about your data?
+
+Ans: 
+Generally speaking, Factors are dimensional and oppositional in nature i.e. each factor has two directions and in our case we see clear oppositions at both ends of the factors. 
+
+On the other hand Clusters are less oppositional ie. one directional and we focus more on variables that score highly ; the first cluster depicts a negative personality who gets angry, depressed and wastes time whereas the second cluster depicts friendly personality, who is helpful and comforting to others.
+Also, choosing the number of factors/clusters is quite a judgement call. 
+

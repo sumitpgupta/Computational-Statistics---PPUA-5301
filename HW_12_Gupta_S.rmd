@@ -1,0 +1,177 @@
+---
+title: "HW_12_Gupta_S"
+author: "Sumit Gupta"
+date: "December 2, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+I am using the mtcars dataset which is a default dataset in R. It has 11 variables and 32 observations.
+The data conprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles.
+
+1. Use your dataset with a continuous dependent variable:
+```{r}
+# Loading the default dataset mtcars which has 11 variables
+datasets::mtcars
+
+
+library(MASS)
+library(glmnet)
+
+x <- model.matrix(mpg ~ ., data=mtcars)[,-1]
+y <- mtcars$mpg
+
+# # Dividing the dataset into train and test set
+set.seed(1)
+train <- sample (1:nrow(x),nrow(x)/2) 
+test <- (-train)
+trainx <- x[train,]
+testx <- x[test,]
+trainy <- y[train]
+testy <- y[test]
+```
+
+```{r}
+# Estimating the elastic net model with alpha as 0,0.5 and 1
+fit.lasso <- cv.glmnet(trainx, trainy, alpha=1)
+fit.ridge <- cv.glmnet(trainx, trainy, alpha=0)
+fit.elnet <- cv.glmnet(trainx, trainy, alpha=.5)
+
+fit.lasso$lambda.min
+fit.ridge$lambda.min
+fit.elnet$lambda.min
+
+```
+So, for elastic net regression, when $\alpha=0.5$ will give the best value of $\lambda=1$ which is 0.09
+
+b. Choose the alpha (and corresponding lambda) with the best results (lowest error), and then test that model out-of-sample using the out-sample data.
+
+
+```{r}
+
+yhat.e <- predict(fit.elnet$glmnet.fit, s=fit.elnet$lambda.min, newx=testx)
+yhat.e
+
+```
+
+
+c. Compare your out-of-sample results to regular multiple regression: fit the regression model in-sample, predict yhat out-of-sample, and estimate the error. Which works better?
+
+```{r}
+lmout <- lm(trainy~trainx)
+yhat.r <- cbind(1,testx) %*% lmout$coefficients
+
+# Mean Square error for Multiple regression fit
+mse.reg <- sum((testy - yhat.r)^2)/nrow(testx)
+mse.reg
+
+# Mean square error for Elastic net regression fit
+mse.e <- sum((testy - yhat.e)^2)/nrow(testx)
+mse.e
+```
+Thus, we observe that MSE for Elastic net model is 46 way less than for Linear regression model with value 337. Hence, Elastic net works much better than Multiple Linear Regression.
+
+
+d. Which coefficients are different between the multiple regression and the elastic net model? What, if anything, does this tell you substantively about the effects of your independent variables on your dependent variable?
+
+```{r}
+coef(fit.elnet, fit.elnet$lambda.min)
+lmout$coefficients
+
+```
+On comparing, the coefficients of the Elastic net model with the Multiple Linear Regression model we observe that, 4 coefficients of Elastic net which are disp, wt, qsec, vs have been shrunk to 0 by the model unlike Linear regression. Thus, Elastic net has a property of coefficient shrinkage and thereby feature reduction.
+
+Thus, this means that these 4 variables donot affect the dependent variable y (mpg).
+
+2. Repeat the same process using your dataset with a binary dependent variable:
+a. Divide your data into an in-sample and out-sample as before, and estimate an SVM using at least two different kernels and tune to find the best cost level for each.
+
+
+Heart Disease data set consists of 14 attributes data. All the attributes consist of numeric values. First 13 variables will be used for predicting 14th variables. The target variable is at index 14 which represents Absence/Presence of heart disease (0/1)
+```{r}
+library(e1071)
+# Loading the data set
+heart.data <- read.csv("heart_tidy.csv", header = T, sep = ",")
+
+x <- heart.data[,c(1:13)]
+y <- heart.data$Target
+
+dat <- data.frame(x=x, y=as.factor(y))
+# Dividing into train and test set
+set.seed(1)
+train <- sample (1:nrow(x),nrow(x)/2) 
+test <- (-train)
+traindat <- dat[train,]
+testdat <- dat[test,]
+
+
+# Estimating using linear Kernel
+costvalues <- 10^seq(-3,2,1)
+tuned.svm_1 <- tune(svm, y~., data=traindat, ranges=list(cost=costvalues), kernel="linear")
+yhat_1 <- predict(tuned.svm_1$best.model, newdata = testdat)
+sum(yhat_1==testdat$y)/length(testdat$y)
+
+summary(tuned.svm_1)
+
+
+# Estimating using Radial Kernel
+
+tuned.svm_2 <- tune(svm, y~., data=traindat, ranges=list(cost=costvalues), kernel="radial")
+yhat_2 <- predict(tuned.svm_2$best.model, newdata = testdat)
+sum(yhat_2==testdat$y)/length(testdat$y)
+
+summary(tuned.svm_2)
+
+```
+
+Thus radial kernel in this case outperforms linear kernel with a cost of 1 and performance of 0.78 better than linear with 0.76
+
+b. Chose the kernel and cost with the best results, and then test that model out-of-sample using the out-sample data.
+
+
+```{r}
+
+tuned.svm_3 <- tune(svm, y~., data=traindat, ranges=list(cost=1), kernel="radial")
+yhat <- predict(tuned.svm_3$best.model,newdata=testdat)
+table(predicted=yhat,truth=testdat$y)
+
+sum(yhat==testdat$y)/length(testdat$y)
+
+
+```
+Accuracy comes as 78% with cost taken as 1 for radial kernel from previous result.
+
+c. Compare your results to a logistic regression: fit the logit in-sample, predict yhat out-of-sample, and estimate the accuracy. Which works better?
+
+```{r}
+logit.reg2 <- glm(y~., data = traindat, family = "binomial")
+
+logit.reg.pred <- predict(logit.reg2, testdat,  type = "response")
+yhat_3 <- round(logit.reg.pred) # rounding off
+
+sum(yhat_3==testdat$y)/length(testdat$y)
+
+```
+
+Thus, we observe that the Radial kernel (0.78) gives slightly better result than the logistic regression model.
+
+
+d. Can you make any guesses as to why the SVM works better (if it does)? Feel to speculate, or to research a bit more the output of svm, the meaning of the support vectors, or anything else you can discover about SVMs (no points off for erroneous speculations!).
+
+Ans:
+If you restrict yourself to linear kernels, both SVMs and Logistic regression (LR) will give almost identical performance and in some cases, LR will beat SVM. If the data is linearly separable in the input space, then LR is usually preferred as it outputs probabilities instead of hard labels and you can fine tune your performance by plotting the ROC curve and figuring out the right threshold.
+
+The natural advantage that SVMs have over LRs is the non-linearity obtained via the use of non-linear kernels. If we compare logistic regression with SVMs with non-linear kernels, then SVMs beat LRs hands down. If the data is linearly separable in the input space, then LRs give performance comparable to SVMs, but if the data is non-linearly separable, then LRs gradually worsen depending on how bad the non-linearity is in the data and SVMs win out.
+
+Also,
+Non-regularized logistic regression techniques don't work well (in fact, the fitted coefficients diverge) when there's a separating hyperplane, because the maximum likelihood is achieved by any separating plane, and there's no guarantee that you'll get the best one. What you get is an extremely confident model with poor predictive power near the margin. 
+
+SVMs get you the best separating hyperplane, and they're efficient in high dimensional spaces. They're similar to regularization in terms of trying to find the lowest-normed vector that separates the data, but with a margin condition that favors choosing a good hyperplane. A hard-margin SVM will find a hyperplane that separates all the data (if one exists) and fail if there is none; soft-margin SVMs (generally preferred) do better when there's noise in the data. 
+
+Additionally, SVMs only consider points near the margin (support vectors). Logistic regression considers all the points in the data set. Which you prefer depends on your problem. 
+
+Logistic regression is great in a low number of dimensions and when the predictors don't suffice to give more than a probabilistic estimate of the response. SVMs do better when there's a higher number of dimensions, and especially on problems where the predictors do certainly (or near-certainly) determine the responses.

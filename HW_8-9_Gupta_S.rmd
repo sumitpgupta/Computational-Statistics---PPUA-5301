@@ -1,0 +1,415 @@
+---
+title: "HW_8-9_Gupta_S"
+author: "Sumit Gupta"
+date: "November 6, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Describe your substantive interest and the general questions(s) you would like to answer (eg, "Does more education cause people to become more liberal?"). Be sure to frame it in a such a way that you are proposing a hypothesis (or multiple hypotheses) that might be either confirmed or disproven by the results of your analysis.
+
+Ans:
+
+This dataset includes data for used GM cars which can be used to determine the car value based on a variety of characteristics such as mileage, make, model, engine size, interior style, and cruise control.
+
+I would like to hypothesize : ""Are cars with lower mileage worth more?"
+
+2. Describe the data set you have found, including its source, its contents, and why it was collected originally.
+
+Ans:
+
+General Data Description: This dataset includes data for used GM cars which can be used to determine the car value based on a variety of characteristics such as mileage, make, model, engine size, interior style, and cruise control.
+
+Source: The data is collected from Kelly Blue book which is a California based vehicle valuation and automotive research company recognized by both consumers and the automotive industry. 
+
+Contents:
+VARIABLE DESCRIPTIONS:
+Price: suggested retail price of the used 2005 GM car in excellent condition. The condition of a car can greatly affect price. All cars in this data set were less than one year old when priced and considered to be in excellent condition. 
+Mileage: number of miles the car has been driven
+Make: manufacturer of the car such as Saturn, Pontiac, and Chevrolet
+Type: body type such as sedan, coupe, etc.
+Cylinder: number of cylinders in the engine	
+Doors: number of doors	
+Cruise: indicator variable representing whether the car has cruise control (1 = cruise)
+Sound: indicator variable representing whether the car has upgraded speakers (1 = upgraded)
+Leather: indicator variable representing whether the car has leather seats (1 = leather)
+
+The dataset has 9 variables and 804 rows of records.
+The data is collected so that a multivariate regression model can be built to determine car values based on various characteristics as mentioned. The dataset can also be used to visualize residual plots to check for the assumptions of linear regression as well as explore techniques for variable selection.
+
+3. What is your dependent variable? Why are you interested in explaining it? What do you hypothesize are the major factors that influence or cause it?
+
+Ans:
+
+My dependent variable is the price of the used cars. I want to check if a car having higher number of cylinder will fetch more price for sales. 
+I hypothesize that Miles the car has run (mileage), Liter, Make could be the major factors that can infleunce the car prices.
+
+4. What are your independent variables, and why have you chosen these? Prior to running your regression, what effects do you expect them to have on the dependent variable? Which of these variables do you think affect other of the independent variables, and how might that affect your final results?
+
+Ans:
+
+```{r}
+# Loading the dataset
+CarPrice_Estimate <- data.frame(read.csv("Kuiper.csv", sep = ",", header = T, stringsAsFactors = F))
+
+df<-CarPrice_Estimate[,-(10:21)]
+na.omit(df)
+str(df)
+df2 <- df
+
+# df<-data.frame(as.numeric(unlist(CarPrice_Estimate)))
+
+
+```
+
+Since the number of independent variables is less (11), I am considering total 11 variables for my regression model.
+
+So, my independent variables are:
+```{r}
+colnames(CarPrice_Estimate[2:9])
+```
+
+```{r}
+plot(df$Price, df$Mileage, xlab = "Mileage", ylab = "Price", pch=19)
+
+df3 <- par(no.readonly = T)
+par(mfrow = c(4,4))
+
+library(ggplot2)
+library(gridExtra)
+p1 <- ggplot(data = df)+
+    geom_point(mapping = aes(x=df$Mileage, y=df$Price), color='blue')+
+    xlab("Mileage") + ylab("Price") +
+    ggtitle("Mileage VS Price")
+
+p2 <- ggplot(data = df)+
+  geom_point(mapping = aes(x=df$Make, y=df$Price), color='red')+
+  xlab("Make") + ylab("Price") +
+  ggtitle("Make Vs Price")
+
+p3 <- ggplot(data = df)+
+  geom_point(mapping = aes(x=df$Type, y=df$Price), color='green')+
+  xlab("Type") + ylab("Price") +
+  ggtitle("Type Vs Price")
+
+p4 <- ggplot(data = df)+
+  geom_point(mapping = aes(x=df$Cylinder, y=df$Price), color='black')+
+  xlab("Cylinder") + ylab("Price") +
+  ggtitle("No of Cylinder Vs Price")
+
+grid.arrange(p1, p2, p3, p4, ncol=2)
+```
+
+
+
+
+Prior to running the regression, plotting price vs mileage, it is difficult to find a particular relationship as the plot is scattered. 
+
+I have also plotted a scatter plot of the numerical variables (excluding categorical variables of Cruise, Sound and Leather since they are in 1's and 0's) from which Convertibles, Cadillac(Make) and 8-cylindered vehicles seem to fetch high prices.
+
+
+
+
+5. Explain and show in detail how you rename and recode the variables you are examining, and what units each are measured in.
+
+For recoding the categorical variables, I follow the process of dummy encoding by converting it into numeric binaries of 1,0.
+Price is measured in US dollars,
+Mileage is measured in miles but other independent variables are integer whole numbers.
+```{r}
+# Dummy coding to convert categorical variables to numeric
+# For variable 'Make'
+df$Make_Cadi  <- ifelse(df$Make == "Cadillac",1,0) 
+df$Make_Chev  <- ifelse(df$Make == "Chevrolet",1,0) 
+df$Make_Ponti <- ifelse(df$Make == "Pontiac",1,0) 
+df$Make_SAAB  <- ifelse(df$Make == "SAAB",1,0) 
+df$Make_Sat   <- ifelse(df$Make == "Saturn",1,0) 
+
+# For variable 'Type'
+df$Type_Coup <- ifelse(df$Type == "Coupe",1,0)
+df$Type_Hatch <-ifelse(df$Type == "Hatchback",1,0)
+df$Type_Sedan <-ifelse(df$Type == "Sedan",1,0)
+df$Type_Wagon <-ifelse(df$Type == "Wagon",1,0)
+
+# For variable 'Cylinder'
+df$Cylinder_6 <- ifelse(df$Cylinder == "6",1,0)
+df$Cylinder_8 <- ifelse(df$Cylinder == "8",1,0)
+
+# For variable 'doors'
+df$door_4 <- ifelse(df$Doors == "4",1,0)
+
+# For variable 'cruise'
+df$Cruise_Y <- ifelse(df$Cruise == "1",1,0)
+
+# For variable 'Sound'
+df$Sound_Y <- ifelse(df$Sound == "1",1,0)
+
+# For variable Leather
+df$Leather_Y <- ifelse(df$Leather == "1",1,0)
+
+``` 
+
+```{r}
+# Dropping Make and Type since already dummies have been created
+df<-df[,c(-3:-7)]
+cor(df)
+```
+
+Checking the correlation to find the relationship between independent variables, we can observe that:
+ Price is negatively co-related with Mileage, Doors and Sound and positively co-related   with Number of cylinders, Cruise and Leather seats. 
+
+6. Before running a multiple regression, run a few bivariate regressions of Y on some of your X variables.
+What do you infer? Which of these do you think might change with the addition of multiple variables?
+
+Ans:
+
+Regressing Mileage on Price:
+```{r}
+model_1 <- lm(df$Price~df$Mileage, data = df)
+summary(model_1)
+```
+We can observe that Mileage has a negative effect on price but just marginally (the p-value is very less). 
+We can interpret that 1 unit increase in mileage reduces Price by 0.634 times which is marginal. Further, $R^2$ is very less (0.02) which signifies very little of the variation in Price is captured by Mileage.
+
+Regressing availability of Cruise control on price:
+```{r}
+model_2 <- lm(df$Price~df$Cruise, data = df)
+summary(model_2)
+```
+We can observe that having cruise control has a positive effect on price. Having cruise control to not having it affects the Price by 9862$. 
+Further, $R^2$ is very less (0.186) which signifies very little of the variation in Price is captured by Cruise.
+
+Regressing cylinder on Price:
+```{r}
+model_3 <- lm(df$Price~df$Make_Cadi+df$Make_Chev+df$Make_Ponti+df$Make_SAAB+df$Make_Sat, data = df)
+summary(model_3)
+```
+
+We can observe that as far as Make of the car is concerned, Cadillac has the most positive effect on price. Cadillac cars have a positive effect on price by $20121 followed by SAAB make
+Further, $R^2$ is also quite good (0.64) which signifies 64% of the variation in Price is captured by Make of the car.
+
+7. Run your full multiple regression using lm() and present your results using the output from the stargazer R package. Interpret the coefficients. What do they tell you substantively? Which variables seem to have the biggest substantive impact? Which ones could you actually change with some intervention, and how big a difference do you think that could make?
+
+Ans:
+
+Running the full multiple regression:
+```{r}
+model_final <- lm(df$Price~., data = df)
+summary(model_final)
+```
+```{r results='asis'}
+library(stargazer)
+stargazer(model_final, no.space=TRUE, dep.var.labels=c("Price"), 
+          covariate.labels=c("Mileage","Make (cadillac)","Make (Chevrolet)","Make (Pontiac)","Make (SAAB)","Make (Saturn)", "Type (Coupe)","Type (Hatchback)","Type (Sedan)","Type (Wagon)","Cylinder (6)", "Cylinder (8)", "Door(4)", "Cruise(Y)", "Sound(Y)", "Leather(Y)"), omit.stat=c("LL","ser","f"),header=FALSE)
+
+```
+
+As, can be observed from the full model regression results:
+Cars of Make Cadillac and SAAB have a psoitive effect on the price, as also having a c ar which has a 6 or a 8 cylinder has a psotive effect. 
+Also Cars having cruise control, sound and leather seats increase their price values.
+
+The most significant parameter which affects car prices positively is having a 6 cylinder car (USD 121) and a wagon type car has the most detrimental effect.($-152 against not having wagon)
+
+8. How have any of the coefficients changed from the bivariate regressions? What can you infer from that?
+How do you think your various independent variables interact and affect each other? Try to find an example where a variable appears signficant in the bivariate regression, but not in the full regression. Is this an example of a spurious or a chained causal pathway?
+
+Ans:
+
+```{r}
+m1 <- lm(df$Price~df$Mileage, data = df)
+summary(m1)
+```
+
+```{r}
+m2<- lm(df$Price~df$Mileage+df$Make_Cadi+df$Make_Chev+df$Make_Ponti+df$Make_SAAB+df$Make_Sat, data = df)
+summary(m2)
+```
+
+```{r}
+m3 <- lm(df$Price~df$Mileage+df$Make_Cadi+df$Make_Chev+df$Make_Ponti+df$Make_SAAB+df$Make_Sat+df$Cylinder_6+df$Cylinder_8+df$Cruise_Y+df$Sound_Y+df$Leather_Y, data = df)
+summary(m3)
+```
+Make of the car Saturn becomes very less significant when additional predictor variables for Cruise, Sound and Leather are added to the regression model.
+This arises because of a Spurious relationship.
+
+9. How does what you see match, or not, your hypotheses from (4)? Why did/didn't it match what you expected?
+
+Ans:
+
+From my earlier hypothesis that Cadillac Make cars and 8 cylinder cars fetch positive prices is true from the regression models. It matched my hypothesis since thefinal regression model did not show any kind of a spurious/chained effect on the variables.
+
+10. What do the R2 and adjusted R2 tell you about your model?
+
+The $R^2 (0.9192)$ and the adjusted $R^2(0.9176)$ suggest are almost same which suggest the model doesnot overfit and the high $R^2$ is just not because of the large number of predictor variables. 
+The high value also signifies the model has high accuracy and is a good model.
+
+11. How would you use one of the variable selection methods to choose a model with fewer variables? Select one of the methods (either one of the stepwise or criterion-based methods) and show which variables it would lead you to keep. Do you agree with its results?
+
+
+```{r}
+Full_Model_BR <- lm(df$Price~., data = na.omit(df))
+step(Full_Model_BR, direction = "backward", trace = F)
+summary(Full_Model_BR)
+```
+I have used the backward elimination method to find out the most significant variables.
+The most important variables are the Mileage, Make and the Type and Cylinder in the vehicle which is close to what we had hypothesized earlier. 
+
+
+12. What are your overall conclusions? What are the weaknesses of your results, and how could you improve them with better or different data? 
+
+Ans: I am getting a large number of predictor variables as the significant ones. 
+The high R squared value could be misleading and can actually be due to modeling random noise due to the large number of predictor variables.
+I believe since the number of significant variables is quite large,it would make great sense to do some variable reduction operation so as to avoid overfitting.
+
+
+13. Calculations (using R):
+a. Derive the coefficients from your regression using the (X'X)???1X'Y formula. (If you run into problems using solve(), try using ginv() instead, which does the same thing but is a bit more robust.)
+
+Ans:
+
+```{r}
+model_final <- lm(df$Price~., data = df)
+summary(model_final)
+```
+Now, lets derive it using matrix algebra, $t(X)$ is R's notation for X' and solve(X) is R's notation for $X^{-1}$.
+
+```{r}
+xmat <- as.matrix(cbind(df$Mileage, df$Make_Cadi, df$Make_Chev,df$Make_Ponti, df$Make_SAAB,df$Make_Sat, df$Type_Coup, df$Type_Hatch,df$Type_Sedan,df$Type_Wagon,df$Cylinder_6,df$Cylinder_8,df$door_4,df$Cruise_Y,df$Sound_Y,df$Leather_Y))
+
+xmat <- cbind(1,xmat) # add the column's of 1
+head(xmat)
+```
+
+```{r}
+#now we solve for Beta in one step: (X'X)^-1 X'Y :
+library(MASS)
+ginv(t(xmat)%*%xmat) %*% t(xmat)%*%df$Price
+```
+Above are the coefficients obtained by the $X'X^{-1} X'Y$
+
+
+b. For one of the coefficients, confirm its p value as shown in the regression output using the coefficient,its standard error, and pt() in R.
+
+Ans:
+
+Lets consider the coeeficients of our first regression model: Mileage Vs Price
+```{r}
+model_1
+summary(model_1)
+```
+Checking using coefficient, std error and pt() we observe:
+Here, t statistic=-4.093
+```{r}
+pt(-4.093,1,802)
+```
+which is very less like (~0.03) our p-value computed above (4.685e-05 = 0.03)
+
+
+
+
+c. Calculate the R2 and adjusted R2 using R, and confirm that your results match the regression output.
+
+Ans:
+
+$R^{2} = \frac{TSS - SSE}{TSS}$
+$SSE = \sum_{i} (y_{i} - \hat{y}_{i})^{2}$
+$TSS = \sum_{i} (y_{i} - \bar{y})^{2}$
+
+Computing $R^2$:
+```{r}
+ypred <- predict(model_final)
+# and the rest of it is done as we have done before:
+y <- df$Price
+tss <- sum((y - mean(y))^2)
+sse <- sum((y-ypred)^2)
+r2 <- (tss-sse)/tss
+r2
+```
+
+Computing Adjusted $R^2$:
+$\textrm{adjusted } R^2 = \frac{TSS/df_t - SSE/df_e}{TSS/df_t}$
+where, 
+$df_t = n - 1$ and $df_e = n - k - 1$
+
+```{r}
+n <- length(y)
+k <- ncol(xmat)-1
+dft <- n - 1
+dfe <- n - k - 1
+(tss/dft - sse/dfe)/ (tss/dft)
+```
+
+Yes, both my $R^2=0.9191$ and Adjusted $R^2=0.9175$ match the regression output.
+
+
+d. Calulate the F statistic using R and confirm it against the regression output.
+
+Ans:
+The F statistic for the multiple regression model should look like:
+$F = \frac{R^2 / k}{(1-R^2)/(n-k-1)}$ where
+ the first degree of freedom is $df1=k$ and the second is $df2=n???k???1$.
+ So we can calculate our F statistic and the p value directly:
+ 
+ 
+```{r}
+f <- (r2/k) / ((1-r2)/(n-k-1))
+f
+```
+
+
+14. Add at least one quadratic term into your model and interpret the results. Is it significant? What is the effect of a 1-unit increase in that variable at its mean value?
+
+```{r}
+Full_Model_2 <- lm(df$Price~ I(Mileage^2)+., data = na.omit(df))
+summary(Full_Model_2)
+```
+
+```{r}
+xbar <- mean(df$Mileage)
+y1 <- Full_Model_2$coefficients[3]*xbar + Full_Model_2$coefficients[2] * xbar^2
+y2 <- Full_Model_2$coefficients[3]*(xbar+1) + Full_Model_2$coefficients[2]*(xbar+1)^2
+y2 - y1
+
+```
+
+Hence, the quadratic term is insignificant as 1-unit increase in the quadratic term changes y be -0.184 when other variables are held constant.
+
+
+
+15. Add at least one interaction term to you model and interpret the results. Is it significant? What is the effect of a 1-unit increase in one of those interacted variables holding the other at its mean value?
+
+Ans:
+```{r}
+
+Full_Model_3 <- lm(df$Price~ Mileage*Cylinder_8+., data = na.omit(df))
+summary(Full_Model_3)
+```
+```{r}
+mean_Cylinder_8 <- mean(df$Cylinder_8)
+mean_Mileage <- mean(df$Mileage)
+y1 <- Full_Model_3$coefficients[2]*mean_Mileage + Full_Model_3$coefficients[20]*mean_Mileage*mean_Cylinder_8
+y2 <- Full_Model_3$coefficients[2]*(mean_Mileage+1) +
+Full_Model_3$coefficients[20]*(mean_Mileage+1)*mean_Cylinder_8
+y2 - y1
+
+```
+The interaction term is not significant. There is a decrease of -0.18 in y with a 1 unit increase in Mileage holding interaction tern at mean and other independent variables constant.
+
+
+
+16. Test either the model in 14 or the model in 15 using the F test for nested models. That is, estimate the full model with the variable and quadratic term, or the variable and interaction, and then estimate the reduced model without either, and run the F test to establish whether those variables significantly your model.
+
+Ans: 
+
+```{r}
+anova(model_final, Full_Model_3)
+```
+
+ Looking at the p-value, we reject the Null hypothesis.
+
+
+

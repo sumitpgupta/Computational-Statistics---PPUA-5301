@@ -1,0 +1,117 @@
+---
+title: "HW_03_Gupta_S"
+author: "Sumit Gupta"
+date: "September 30, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r fig.align='center', fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+Sys.setenv(PATH=paste(Sys.getenv("PATH"),"C:/Program Files/MiKTeX
+2.9/miktex/bin/x64/",sep=";"))
+```
+
+
+Question 1.
+
+a.
+
+There wil be five cominations where a number and its successor appear consecutively.
+These pair of numbers are: (1,2), (2,3), (3,4), (4,5), (5,6) out of a total 36 combinations.
+Hence Probability is 5/36.
+
+b.
+Let P(A) = Probability of hitting Bulls eye
+    P(B) = Probability of hitting inner circle
+    
+    So $P_A/P_B = (P_A\cap P_B)/P_B$
+    which is equal to (5/100)/(2/3) = 0.075
+    
+c.
+The probability of disease testing positive can be given as:
+
+P(+ve) = (Sensitivity*Probability)/[(Sensitivity*Probability)+FPR*(1-Probability)]
+
+We write a function to evaluate this Probability:
+
+
+```{r}
+
+P_disease <- 0.0001
+Sensitivity <- 0.95
+FPR <- 0.05
+
+Probability_Positive <- function(P_disease, Sensitivity, FPR) {
+              Sensitivity*P_disease/(Sensitivity*P_disease + FPR*(1-P_disease))
+}
+
+Probability_Positive (P_disease, Sensitivity, FPR)
+```
+
+d.
+```{r}
+Probability_Positive(P_disease=1/10000, Sensitivity, FPR)
+```
+The result comes out to be the same as before.
+
+e.
+
+The probability of a person having a disease is in proportion to the general population. Hence testing rare diseases becomes difficult.So, the False Positve rate should be maintained as low as possible which is quite difficult in real life scenarios.
+
+Question 2.
+
+a.
+```{r}
+Dice_roll <- sample(1:20,1000,replace = TRUE)
+sum(Dice_roll <=10)
+```
+
+b.
+```{r}
+Uni_Dist <- runif(10000, 2,7)
+library(ggplot2)
+ggplot(data.frame(Uni_Dist), aes(Uni_Dist))+
+  geom_histogram()+ ggtitle("Uniform Distribution")+ xlab("Random Sample")
+
+
+```
+
+c.
+
+$$ P(x) = \left\{\begin{array}{cl} \frac{1}{7-2} & \mbox{for } x in [2,7] \\ 0 & \mbox{otherwise}
+\end{array}\right. $$
+
+d.
+```{r}
+punif(3.2,2,7,lower.tail = T, log.p = F)-punif(1.5,2,7, lower.tail = T, log.p = F)
+```
+
+Question 3.
+```{r}
+pbinom(500, 10000, prob = 1/20)
+
+sum(Dice_roll==20) / length(Dice_roll)
+```
+
+b.
+```{r}
+rbinom(1,100,1/100)
+```
+
+c.
+```{r}
+ppois(1, lambda = 1, lower.tail=FALSE)
+```
+
+d.
+```{r}
+mean <- 70
+Sd <- 10
+
+pnorm(85, mean=mean, sd=Sd, lower.tail=F)
+
+pnorm(60, mean=mean, sd=Sd) - pnorm(50, mean=mean, sd=Sd)
+
+```
+
+

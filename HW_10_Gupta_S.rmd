@@ -1,0 +1,168 @@
+---
+title: "HW 10"
+author: "Sumit Gupta"
+date: "November 15, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Using the anes_2008tr.csv dataset in Course Resources, model vote_rep (whether the respondent voted Republican in the last election) as a function of age, race, income, and ideology.
+
+
+
+```{r}
+data <- read.csv("anes_2008tr.csv", header = T, sep = ",")
+data[1:2, 1:7]
+dim(data)
+invlogit <- function(x) exp(x) / (1+exp(x))
+library(stargazer)
+```
+
+Quick inspection of data reveals that there are 45 records with age = 0
+```{r}
+x <- data[, c("age","race_white","income","ideology_con")]
+pairs(x, diag.panel=function(x){par(new=T); plot(density(x), main=''); rug(x)}, cex.labels=3)
+head(table(data$age))
+```
+These are missing age values and we could either impute them or ignore correspnding records.
+Here we simply replace 0 with NA (which is R's way of marking missing values).
+
+```{r}
+data$age[data$age < 18] <- NA
+```
+
+```{r results='asis'}
+lr <- glm(vote_rep ~ age + race_white + income + ideology_con, data=data, family="binomial")
+stargazer(lr, align=TRUE, no.space=TRUE, omit.stat=c("LL","ser","f"), header=FALSE)
+```
+
+a. What's the probability of voting Republican for a white person of average age, income, and ideology?
+
+```{r}
+means <- sapply(lr$model, mean) # mean values for the inputs to the model.
+means
+# n <- length(means)
+# white person
+person <- c(intercept=1, age=NA, race_white=NA, income=NA, ideology_con=NA)
+attr <- c('age', 'race_white', 'income', 'ideology_con') # person attributes
+mean.p <- person
+mean.p[attr] <- means[attr] # person with all attributes set to mean values
+white.p <- mean.p
+white.p['race_white'] <- 1 # average white person
+cat('regression coefficients:\n'); print(lr$coefficients)
+cat('"average" white person:\n'); print(white.p)
+```
+
+
+Plug in our x values and use the inverse logit function to calculate probability.
+For binary variables, we use the modal value rather than the mean value,
+since it doesn't make as much sense to talk about someone of intermediate
+race (for these purposes).
+```{r}
+y <- sum(lr$coefficients * white.p)
+p <- invlogit(y)
+```
+
+The probability that a white person votes republican, holding other variables
+at their mean value, is 0.48
+
+
+b. What's the change in probability of voting Republican for a person of average age,
+income, and ideology who switches from non-white to white?
+
+Ans:
+
+```{r}
+non_white.p <- mean.p
+non_white.p['race_white'] <- 0
+nw <- sum(lr$coefficients * non_white.p)
+wh <- sum(lr$coefficients * white.p)
+p.nw <- invlogit(nw)
+p.wh <- invlogit(wh)
+p.change <- round(p.wh - p.nw, 3)
+```
+
+c. Using the $e^\beta$ formula from the lesson, what's the effect on the odds ratio of shifting from black to white?
+
+```{r}
+odds.ratio <- round(exp(lr$coefficients["race_white"]), 2)
+odds.ratio
+```
+
+Shifting from non-white to white increases the odds by a factor of 10.96
+
+
+d. What has a greater effect on the probability of voting Republican: an age increase of 50 years, or an incease of one income bracket? (You may choose your own baseline, such as from 25 years below average to 25 years above average; and similarly for income.)
+
+Ans:
+```{r}
+y.avg <- lr$coefficients * mean.p # prediction for the average person
+y.age <- y.income <- y.avg
+# Increase age term by 50 from mean.
+y.age["age"] <- y.age["age"] + 50*lr$coefficients["age"]
+# Increase income bracket by 1 from mean.
+y.income["income"] <- y.income["income"] + 1*lr$coefficients["income"]
+p.avg <- invlogit(sum(y.avg))
+p.age <- invlogit(sum(y.age))
+p.income <- invlogit(sum(y.income))
+age.diff    <- round(p.age - p.avg, 3)    # Difference by increasing age by 50 from average
+income.diff <- round(p.income - p.avg, 3) # Difference by increasing income by 1 bracket from average
+# cat(sprintf('age diff = %s, income diff = %s\n', signif(d.age,2), signif(d.income,2)))
+```
+
+There is a larger positive difference in the probability of voting republican
+by increasing the income bracket by 1 than age increase by 50 year (both from mean).
+
+
+Alternatively, with odds:
+```{r}
+incr.income.by.1 <- round(exp(lr$coefficients['income'] * 1),3)
+incr.age.by.50 <- round(exp(lr$coefficients['age'] * 50),3)
+```
+
+i.e. there is larger odds increase of voting republican due to the increase
+of income bracket by 1
+
+
+e.Now run the regression with all the other variables in anes_2008tr (except for voted). How do your coefficients change? What do you think explains any coefficient that became or lost significance?
+
+```{r results='asis'}
+lr_all <- glm(vote_rep ~ age + race_white + income + ideology_con + gender_male +
+              education + ideology_con + partyid_rep, data=data,
+              family="binomial")
+stargazer(lr_all, align=TRUE, no.space=TRUE, omit.stat=c("LL","ser","f"), header=FALSE)
+## SEE TABLE 2 and compare with TABLE 1
+```
+
+```{r}
+summary(lr_all)
+```
+
+Compare coefficients side by side:
+```{r}
+all <- coef(lr_all)
+sel <- coef(lr)
+x <- setdiff(names(all), names(sel))
+z <- rep(NA, length(x))
+names(z) <- x
+v <- as.data.frame(cbind(orig=c(sel, z), all))
+v[['orig/all']] <- v$orig/v$all
+round(v, 4)
+```
+
+
+Age becomes significant when all variables are added.
+You can also see there are differences in the $\beta$ estimates themselves.
+Note how party ID is also quite significant.
+One reason why age may now be significant where it was not before is that age
+both causes people to be more conservative (more likely to vote Republican),
+and is also correlated with being a Democrat (older people are more Democratic because being a Democrat was more popular decades ago),which of course is correlated with voting Democrat.
+But once you control for party ID, the second effect is controlled for,
+so the effect of age is no longer pulled in two directions, revealing its true effect:
+to make one more likely to vote Republican.
+
